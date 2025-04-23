@@ -1,0 +1,5 @@
+server:
+  port: 8090
+llama:
+  path: E:\llma-cpu\llama-b5137-bin-win-avx2-x64\llama-cli.exe
+  model: E:\llma-cpu\models\phi-2.Q4_K_M.gguf

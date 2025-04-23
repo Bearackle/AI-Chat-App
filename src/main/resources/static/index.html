@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLaMA Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .chat-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .chat-box {
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+        .message {
+            margin: 6px 0;
+            white-space: pre-wrap;
+        }
+        .user {
+            color: #007bff;
+            font-weight: bold;
+        }
+        .assistant {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        button {
+            padding: 10px 16px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        .input-group button {
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <h1>🦙 LLaMA Chat</h1>
+    <div class="chat-box" id="chatBox"></div>
+    <form id="chatForm" class="input-group">
+        <input
+                type="text"
+                id="promptInput"
+                placeholder="Nhập câu hỏi..."
+                required
+        />
+        <button type="submit" id="sendBtn">Gửi</button>
+        <button type="button" id="stopBtn" style="display: none;" disabled>Dừng</button>
+    </form>
+</div>
+
+<script>
+    const chatBox = document.getElementById("chatBox");
+    const form = document.getElementById("chatForm");
+    const input = document.getElementById("promptInput");
+    const sendBtn = document.getElementById("sendBtn");
+    let source = null;
+    let retryCount = 0;
+    const maxRetries = 3;
+    var stopBtn = document.getElementById("stopBtn");
+    stopBtn.addEventListener("click", function () {
+        appendMessage("Hệ thống", "⛔ Đã dừng phản hồi.", "error");
+        closeConnection();
+    });
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const prompt = input.value.trim();
+        if (!prompt) return;
+
+        appendMessage("Bạn", prompt, "user");
+        input.value = "";
+        input.disabled = true;
+        sendBtn.style.display = "none";
+        stopBtn.style.display = "inline-block";
+        stopBtn.disabled = false;
+        if (source) {
+            console.log("Đóng kết nối cũ:", source.url);
+            source.close();
+            source = null;
+        }
+
+        const url = `/chat?prompt=${encodeURIComponent(prompt)}`;
+        console.log("Kiểm tra kết nối tới:", url);
+        try {
+            const testResponse = await fetch(url, {
+                method: "GET",
+                headers: { Accept: "text/event-stream" },
+            });
+            console.log("Kiểm tra server:", {
+                status: testResponse.status,
+                ok: testResponse.ok,
+                headers: Object.fromEntries(testResponse.headers.entries()),
+            });
+            if (!testResponse.ok) {
+                throw new Error(`Server trả về status: ${testResponse.status}`);
+            }
+            if (testResponse.headers.get("content-type") !== "text/event-stream") {
+                throw new Error("Response không phải text/event-stream");
+            }
+        } catch (err) {
+            console.error("Lỗi khi kiểm tra server:", err.message);
+            appendMessage("Lỗi", `Không thể kết nối đến server: ${err.message}`, "error");
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+            return;
+        }
+
+        source = new EventSource(url);
+        console.log("Khởi tạo EventSource:", url);
+
+        let assistantMsg = "";
+        let assistantDiv = appendMessage("LLaMA", "", "assistant", true);
+
+        source.onopen = function () {
+            console.log("Kết nối SSE mở:", source.url);
+            retryCount = 0;
+        };
+
+        source.onmessage = function (event) {
+            console.log("Nhận dữ liệu SSE:", { data: event.data, length: event.data.length });
+            if (event.data === "[DONE]") {
+                console.log("Luồng hoàn tất");
+                closeConnection();
+                return;
+            }
+            if (event.data.startsWith(":")) {
+                console.log("Bỏ qua heartbeat message:", event.data);
+                return;
+            }
+            if (event.data && event.data.trim() !== "" && event.data !== "[DONE]") {
+                try {
+                    // Loại bỏ "data: " và "\n\n", thay thế các ký tự thoát
+                    let content = event.data
+                        .replace(/^data: /, '') // Loại bỏ "data: "
+                        .replace(/\n\n$/, '')   // Loại bỏ "\n\n" ở cuối
+                        .replace(/\\n/g, '\n')  // Chuyển \n thành xuống dòng thực
+                        .replace(/\\r/g, '\r'); // Chuyển \r thành ký tự thực
+
+                    assistantMsg += content;
+                    assistantDiv.querySelector(".content").textContent = assistantMsg;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                } catch (err) {
+                    console.warn("Lỗi xử lý dữ liệu SSE:", { error: err.message, data: event.data });
+                }
+            } else {
+                console.warn("Dữ liệu SSE rỗng:", event.data);
+            }
+        };
+
+        source.onerror = function () {
+            const errorDetails = {
+                readyState: source ? source.readyState : "N/A",
+                url: source ? source.url : url,
+                retryCount: retryCount,
+            };
+            console.error("Lỗi kết nối SSE:", errorDetails);
+            appendMessage("Lỗi", "Không thể kết nối đến server. Đang thử lại...", "error");
+            closeConnection();
+
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`Thử kết nối lại (${retryCount}/${maxRetries}) sau 3 giây...`);
+                setTimeout(() => {
+                    form.dispatchEvent(new Event("submit"));
+                }, 3000);
+            } else {
+                console.log("Đã đạt số lần thử tối đa.");
+                appendMessage(
+                    "Lỗi",
+                    "Không thể kết nối sau nhiều lần thử. Vui lòng kiểm tra server hoặc thử lại sau.",
+                    "error"
+                );
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        };
+    });
+
+    function closeConnection() {
+        if (source) {
+            console.log("Đóng kết nối SSE:", source.url);
+            source.close();
+            source = null;
+        }
+        input.disabled = false;
+        sendBtn.style.display = "inline-block";
+        stopBtn.style.display = "none";
+        sendBtn.disabled = false;
+        stopBtn.disabled = true;
+        input.focus();
+        // if (source) {
+        //     console.log("Đóng kết nối SSE:", source.url);
+        //     source.close();
+        //     source = null;
+        // }
+        // input.disabled = false;
+        // sendBtn.disabled = false;
+        // input.focus();
+    }
+
+    function appendMessage(name, text, role, returnDiv = false) {
+        const msg = document.createElement("div");
+        msg.classList.add("message");
+        msg.innerHTML = `<span class="${role}">${name}:</span> <span class="content">${text}</span>`;
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return returnDiv ? msg : undefined;
+    }
+
+    window.addEventListener("beforeunload", () => {
+        closeConnection();
+    });
+</script>
+</body>
+</html>
