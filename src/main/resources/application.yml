@@ -1,5 +1,49 @@
 server:
   port: 8090
 llama:
-  path: E:\llma-cpu\llama-b5137-bin-win-avx2-x64\llama-cli.exe
-  model: E:\llma-cpu\models\phi-2.Q4_K_M.gguf
+  base-url: http://localhost:8080
+jwt:
+  tokenHeader: Authorization
+  secret: WvqWxVY0NuX469fNVMVT3YsJmLevE6Vk4TOwfwqhVOaiGYLE8jTtmmclg7Zm/LOAbRJKPq5SAzlWh0NI7Y01urMPvreS13eo89hb7YaDd7k=
+  expiration: 604800
+  tokenHead: 'Bearer '
+spring:
+  application:
+    name: llama-backend
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+mybatis:
+  mapper-locations:
+    - classpath:com/workspace/llmsystem/mapper/*.xml
+secure:
+  ignored:
+    urls:
+      - /swagger-ui/
+      - /swagger-resources/**
+      - /**/v2/api-docs
+      - /**/*.html
+      - /**/*.js
+      - /**/*.css
+      - /**/*.png
+      - /**/*.map
+      - /favicon.ico
+      - /actuator/**
+      - /druid/**
+      - /user/login
+      - /user/register
+      - /user/info
+      - /user/logout
+      - /minio/upload
+redis:
+  database: aichat
+  key:
+    user: 'ums:user'
+  expire:
+    common: 86400
