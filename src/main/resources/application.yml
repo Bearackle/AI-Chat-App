@@ -1,7 +1,7 @@
 server:
   port: 8090
 llama:
-  base-url: http://localhost:8080
+  base-url: http://127.0.0.1:8080
 jwt:
   tokenHeader: Authorization
   secret: WvqWxVY0NuX469fNVMVT3YsJmLevE6Vk4TOwfwqhVOaiGYLE8jTtmmclg7Zm/LOAbRJKPq5SAzlWh0NI7Y01urMPvreS13eo89hb7YaDd7k=
@@ -22,6 +22,7 @@ spring:
 mybatis:
   mapper-locations:
     - classpath:com/workspace/llmsystem/mapper/*.xml
+    - classpath:dao/*.xml
 secure:
   ignored:
     urls:

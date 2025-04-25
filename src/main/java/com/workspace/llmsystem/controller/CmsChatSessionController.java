@@ -1,12 +1,10 @@
 package com.workspace.llmsystem.controller;
 
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.workspace.llmsystem.common.api.CommonResult;
 import com.workspace.llmsystem.dto.CmsChatSessionParam;
 import com.workspace.llmsystem.model.CmsChatSession;
 import com.workspace.llmsystem.service.CmsSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -14,14 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-@Controller
+@RestController
 @RequestMapping("/conversations")
 public class CmsChatSessionController {
     private final Logger LOGGER = Logger.getLogger(CmsChatSessionController.class.getName());
     @Autowired
     private CmsSessionService cmsSessionService;
-    @Autowired
-    private ParameterNamesModule parameterNamesModule;
 
     @RequestMapping(value ="/create", method = RequestMethod.POST)
     @ResponseBody
