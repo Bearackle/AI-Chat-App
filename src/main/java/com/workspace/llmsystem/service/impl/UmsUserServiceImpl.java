@@ -50,7 +50,7 @@ public class UmsUserServiceImpl implements UmsUserService {
         example.createCriteria().andUsernameEqualTo(username);
         List<UmsUser> users = umsUserMapper.selectByExample(example);
         if(users != null && users.size() > 0){
-            user = users.getFirst();
+            user = users.get(0);
             getCacheService().setUser(user);
             return user;
         }

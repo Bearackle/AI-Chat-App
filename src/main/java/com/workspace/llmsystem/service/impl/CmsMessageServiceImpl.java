@@ -109,7 +109,7 @@ public class CmsMessageServiceImpl implements CmsMessageService {
     @Override
     public List<CmsMessage> getCompletedChatContent(Long sid) {
         List<CmsMessage> ms = cmsMessageDao.getFullContentBySession(sid);
-        log.info("getCompletedChatContent:{}", ms.getFirst().getContent());
+        log.info("getCompletedChatContent:{}", ms.get(0).getContent());
         return ms;
     }
 }
