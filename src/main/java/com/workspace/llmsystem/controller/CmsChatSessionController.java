@@ -1,6 +1,7 @@
 package com.workspace.llmsystem.controller;
 
 import com.workspace.llmsystem.common.api.CommonResult;
+import com.workspace.llmsystem.common.api.ResultCode;
 import com.workspace.llmsystem.dto.CmsChatSessionParam;
 import com.workspace.llmsystem.model.CmsChatSession;
 import com.workspace.llmsystem.service.CmsSessionService;
@@ -28,17 +29,18 @@ public class CmsChatSessionController {
         LOGGER.info("key : sessionId value:" + id);
         return CommonResult.success(data);
     }
-    @RequestMapping(value = "/update-name/{id}", method = RequestMethod.POST)
+    @RequestMapping(value = "/update-name/{id}", method = RequestMethod.PATCH)
     @ResponseBody
     public CommonResult<Map<String, Boolean>> updateSessionName(@PathVariable Long id,
                                                                 @RequestBody CmsChatSessionParam param){
         int row = cmsSessionService.updateSessionName(id,param.getTitle());
         Map<String, Boolean> data = new HashMap<>();
-        if(row > 0)
+        if(row > 0) {
             data.put("updated", true);
-        else
-            data.put("updated", false);
-        return CommonResult.success(data);
+            return CommonResult.success(data);
+        }
+        data.put("updated", false);
+        return CommonResult.failed(ResultCode.FAILED);
     }
     @RequestMapping(value = "/delete/{id}", method = RequestMethod.DELETE)
     @ResponseBody
