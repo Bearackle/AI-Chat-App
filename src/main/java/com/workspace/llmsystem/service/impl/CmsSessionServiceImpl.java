@@ -1,9 +1,8 @@
 package com.workspace.llmsystem.service.impl;
 
 import com.workspace.llmsystem.mapper.CmsChatSessionMapper;
-import com.workspace.llmsystem.model.CmsChatSession;
-import com.workspace.llmsystem.model.CmsChatSessionExample;
-import com.workspace.llmsystem.model.UmsUser;
+import com.workspace.llmsystem.mapper.CmsMessageMapper;
+import com.workspace.llmsystem.model.*;
 import com.workspace.llmsystem.service.CmsSessionService;
 import com.workspace.llmsystem.service.UmsUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +19,9 @@ public class CmsSessionServiceImpl implements CmsSessionService {
     private UmsUserService umsUserService;
     @Autowired
     private CmsChatSessionMapper cmsChatSessionMapper;
+    @Autowired
+    private CmsMessageMapper cmsMessageMapper;
+
     @Override
     public Long createSession() {
         CmsChatSession cmsChatSession = new CmsChatSession();
@@ -38,6 +40,10 @@ public class CmsSessionServiceImpl implements CmsSessionService {
     }
     @Override
     public int deleteSession(Long sessionId) {
+        CmsMessageExample example = new CmsMessageExample();
+        CmsMessageExample.Criteria criteria = example.createCriteria();
+        criteria.andSessionIdEqualTo(sessionId);
+        cmsMessageMapper.deleteByExample(example);
         return cmsChatSessionMapper.deleteByPrimaryKey(sessionId);
     }
     @Override

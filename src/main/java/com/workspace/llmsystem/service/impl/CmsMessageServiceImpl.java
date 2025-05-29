@@ -3,10 +3,9 @@ package com.workspace.llmsystem.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workspace.llmsystem.dao.CmsMessageDao;
+import com.workspace.llmsystem.mapper.CmsChatSessionMapper;
 import com.workspace.llmsystem.mapper.CmsMessageMapper;
-import com.workspace.llmsystem.model.CmsMessage;
-import com.workspace.llmsystem.model.CmsMessageExample;
-import com.workspace.llmsystem.model.UmsUser;
+import com.workspace.llmsystem.model.*;
 import com.workspace.llmsystem.service.CmsMessageService;
 import com.workspace.llmsystem.service.UmsUserService;
 import org.slf4j.Logger;
@@ -38,6 +37,8 @@ public class CmsMessageServiceImpl implements CmsMessageService {
     private UmsUserService umsUserService;
     @Autowired
     private CmsMessageDao cmsMessageDao;
+    @Autowired
+    private CmsChatSessionMapper cmsChatSessionMapper;
 
     public CmsMessageServiceImpl(ObjectMapper objectMapper,@Value("${llama.base-url}") String baseUrl) {
         this.objectMapper = objectMapper;
@@ -74,9 +75,9 @@ public class CmsMessageServiceImpl implements CmsMessageService {
                         JsonNode json = objectMapper.readTree(chunk);
                         String content = json.get("content").asText();
                         boolean stop = json.get("stop").asBoolean();
-                        String sseData = "data: " + content.replace("\n", "\\n") + "\n\n";
+                        String sseData = "data: " + content.replace("\n", "\\n");
                         if (stop) {
-                            sseData += "data: [DONE]\n\n";
+                            sseData = "data: [DONE]";
                         }
                         chatAccumulator.append(content).append(" ");
                         return sseData;
@@ -99,9 +100,15 @@ public class CmsMessageServiceImpl implements CmsMessageService {
                     messageFromModel.setCreatedAt(new Date());
                     messageFromModel.setIsUser(0);
                     cmsMessageMapper.insertSelective(messageFromModel);
+                    // update title
+                    CmsChatSession chatSession = cmsChatSessionMapper.selectByPrimaryKey(sid);
+                    if(chatSession.getTitle() == null){
+                        chatSession.setTitle(prompt);
+                        cmsChatSessionMapper.updateByPrimaryKeySelective(chatSession);
+                    }
                 });
         Flux<String> heartbeat = Flux.interval(Duration.ofSeconds(15))
-                .map(tick -> ": keep-alive\n\n");
+                .map(tick -> ": keep-alive");
         return Flux.merge(dataFlux, heartbeat)
                 .doOnCancel(() -> log.info("Frontend disconnected Cancel"))
                 .doOnComplete(() -> log.info("SSE streaming completed"));

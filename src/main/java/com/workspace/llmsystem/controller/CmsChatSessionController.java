@@ -35,6 +35,7 @@ public class CmsChatSessionController {
                                                                 @RequestBody CmsChatSessionParam param){
         int row = cmsSessionService.updateSessionName(id,param.getTitle());
         Map<String, Boolean> data = new HashMap<>();
+        LOGGER.info("key : sessionId update title value:" + id);
         if(row > 0) {
             data.put("updated", true);
             return CommonResult.success(data);
@@ -51,6 +52,7 @@ public class CmsChatSessionController {
             data.put("deleted", true);
         else
             data.put("deleted", false);
+        LOGGER.info("key : sessionId deleted value:" + id);
         return CommonResult.success(data);
     }
     @RequestMapping(value = "/list", method = RequestMethod.GET)
