@@ -33,12 +33,14 @@ public class UmsUserController {
     @Operation(summary = "Register")
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     @ResponseBody
-    public CommonResult<UmsUser> register(@Validated @RequestBody UmsUserParam umsUserParam){
+    public CommonResult<Map<String, Boolean>> register(@Validated @RequestBody UmsUserParam umsUserParam){
         UmsUser umsUser = userService.register(umsUserParam);
         if(umsUser == null){
             return CommonResult.failed();
         }
-        return CommonResult.success(umsUser);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("isRegister", true);
+        return CommonResult.success(result);
     }
     @Operation(summary = "dang nhap")
     @RequestMapping(value = "/login", method = RequestMethod.POST)
@@ -64,6 +66,8 @@ public class UmsUserController {
         UmsUser umsUser = userService.getUserByUsername(username);
         Map<String, Object> data = new HashMap<>();
         data.put("username", umsUser.getUsername());
+        data.put("email", umsUser.getEmail());
+        data.put("status", umsUser.getStatus() == 1 ? "active" : "inactive");
         return CommonResult.success(data);
     }
 }

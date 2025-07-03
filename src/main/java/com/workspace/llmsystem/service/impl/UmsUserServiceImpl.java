@@ -81,10 +81,10 @@ public class UmsUserServiceImpl implements UmsUserService {
         try{
             UserDetails userDetails = loadUserByUsername(username);
             if(!passwordEncoder.matches(password, userDetails.getPassword())){
-                Assert.fail("wrong password");
+                Assert.fail("Failed to login");
             }
             if(!userDetails.isEnabled()){
-                Assert.fail("user not enabled");
+                Assert.fail("User not enabled");
             }
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, null);
             SecurityContextHolder.getContext().setAuthentication(authentication);
